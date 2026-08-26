@@ -50,6 +50,9 @@ def obtener_casilla(indice: int) -> Dict:
     """Devuelve el diccionario-casilla del tablero en el índice dado (lookup puro)."""
     return TABLERO[indice]
 
+def reemplazar_jugador(jugadores: Tuple[Dict, ...], nuevo: Dict) -> Tuple[Dict, ...]:
+    """Devuelve una NUEVA tupla de jugadores con `nuevo` reemplazando al de su mismo color."""
+    return tuple(nuevo if j["color"] == nuevo["color"] else j for j in jugadores)
 
 # ---------------------------------------------------------------------------
 # Orden de turnos (recursivo, puro)

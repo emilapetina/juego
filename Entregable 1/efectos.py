@@ -11,7 +11,7 @@ Entregable 1 - Programación Funcional - Programación Avanzada 2026
 import random
 from typing import Callable, Dict, Tuple
 
-from reglas import avanzar_jugador, retroceder_jugador, obtener_casilla, tirar_dado
+from reglas import avanzar_jugador, retroceder_jugador, obtener_casilla, tirar_dado, reemplazar_jugador
 
 # Firma de la función que decide a qué color castigar en P1.
 # Se inyecta desde afuera para no mezclar la lógica del juego con la
@@ -20,10 +20,6 @@ from reglas import avanzar_jugador, retroceder_jugador, obtener_casilla, tirar_d
 # consola, y sigue siendo fácil de probar.
 ElegirColorCastigado = Callable[[Tuple[Dict, ...], str], str]
 
-
-def _reemplazar_jugador(jugadores: Tuple[Dict, ...], nuevo: Dict) -> Tuple[Dict, ...]:
-    """Devuelve una NUEVA tupla de jugadores con `nuevo` reemplazando al de su mismo color."""
-    return tuple(nuevo if j["color"] == nuevo["color"] else j for j in jugadores)
 
 
 def aplicar_efecto(
@@ -55,26 +51,26 @@ def aplicar_efecto(
         # Tira el dado nuevamente y avanza.
         dado = tirar_dado()
         nuevo_jugador = avanzar_jugador(jugador, dado)
-        jugadores_actualizados = _reemplazar_jugador(jugadores, nuevo_jugador)
+        jugadores_actualizados = reemplazar_jugador(jugadores, nuevo_jugador)
         # la casilla nueva puede tener efecto propio -> se encadena (recursión)
         return aplicar_efecto(nuevo_jugador, jugadores_actualizados, elegir_color_castigado)
 
     if tipo == "P3":
         # Avanza 2 casillas.
         nuevo_jugador = avanzar_jugador(jugador, 2)
-        jugadores_actualizados = _reemplazar_jugador(jugadores, nuevo_jugador)
+        jugadores_actualizados = reemplazar_jugador(jugadores, nuevo_jugador)
         return aplicar_efecto(nuevo_jugador, jugadores_actualizados, elegir_color_castigado)
 
     if tipo == "C1":
         # Pierde 1 turno.
         nuevo_jugador = {**jugador, "pierde_turno": True}
-        jugadores_actualizados = _reemplazar_jugador(jugadores, nuevo_jugador)
+        jugadores_actualizados = reemplazar_jugador(jugadores, nuevo_jugador)
         return nuevo_jugador, jugadores_actualizados
 
     if tipo == "C2":
         # Retrocede 3 casillas (sin pasar antes de INICIO).
         nuevo_jugador = retroceder_jugador(jugador, 3)
-        jugadores_actualizados = _reemplazar_jugador(jugadores, nuevo_jugador)
+        jugadores_actualizados = reemplazar_jugador(jugadores, nuevo_jugador)
         return nuevo_jugador, jugadores_actualizados
 
     # NORMAL, INICIO o FIN: no hay efecto especial.
@@ -99,26 +95,26 @@ if __name__ == "__main__":
     print("--- C2 (retrocede 3) ---")
     ana_en_c2 = {**jugadores_demo[0], "posicion": 29}  # casilla C2
     jugador_actualizado, jugadores_actualizados = aplicar_efecto(
-        ana_en_c2, _reemplazar_jugador(jugadores_demo, ana_en_c2), elegir_color_al_azar
+        ana_en_c2, reemplazar_jugador(jugadores_demo, ana_en_c2), elegir_color_al_azar
     )
     print(f"Ana queda en posición {jugador_actualizado['posicion']} (esperado 26)")
 
     print("\n--- C1 (pierde 1 turno) ---")
     ana_en_c1 = {**jugadores_demo[0], "posicion": 16}  # casilla C1
     jugador_actualizado, _ = aplicar_efecto(
-        ana_en_c1, _reemplazar_jugador(jugadores_demo, ana_en_c1), elegir_color_al_azar
+        ana_en_c1, reemplazar_jugador(jugadores_demo, ana_en_c1), elegir_color_al_azar
     )
     print(f"Ana pierde_turno = {jugador_actualizado['pierde_turno']} (esperado True)")
 
     print("\n--- P3 (avanza 2) ---")
     ana_en_p3 = {**jugadores_demo[0], "posicion": 22}  # casilla P3
     jugador_actualizado, _ = aplicar_efecto(
-        ana_en_p3, _reemplazar_jugador(jugadores_demo, ana_en_p3), elegir_color_al_azar
+        ana_en_p3, reemplazar_jugador(jugadores_demo, ana_en_p3), elegir_color_al_azar
     )
     print(f"Ana queda en posición {jugador_actualizado['posicion']} (esperado 24)")
 
     print("\n--- P1 (elige color castigado) ---")
     ana_en_p1 = {**jugadores_demo[0], "posicion": 5}  # casilla P1
-    jugadores_base = _reemplazar_jugador(jugadores_demo, ana_en_p1)
+    jugadores_base = reemplazar_jugador(jugadores_demo, ana_en_p1)
     _, jugadores_actualizados = aplicar_efecto(ana_en_p1, jugadores_base, elegir_color_al_azar)
     print(f"Estado de Beto: {jugadores_actualizados[1]} (esperado pierde_turno=True, es el único oponente)")
