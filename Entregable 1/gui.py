@@ -148,10 +148,10 @@ def crear_elegir_color_gui(ventana: tk.Tk):
 def ejecutar_un_turno(estado_app, elegir_color_castigado, dado_fn=tirar_dado):
     jugadores, indice_actual = siguiente_jugador(estado_app["jugadores"], estado_app["indice_actual"])
     jugador_actual = jugadores[indice_actual]
-    jugador_final, jugadores = jugar_turno(jugador_actual, jugadores, elegir_color_castigado, dado_fn)
+    jugador_final, jugadores, dado, eventos = jugar_turno(jugador_actual, jugadores, elegir_color_castigado, dado_fn)
     estado_app["jugadores"] = jugadores
     estado_app["indice_actual"] = indice_actual
-    return jugador_actual, jugador_final
+    return jugador_actual, jugador_final, dado, eventos
 
 
 # ---------------------------------------------------------------------------
@@ -237,18 +237,22 @@ def iniciar_app() -> tk.Tk:
         dibujar_tablero(canvas)
         dibujar_fichas(canvas, jugadores)
 
-        etiqueta_estado = tk.Label(contenedor, text="¡Arrancamos!", font=("Arial", 12), pady=10)
+        etiqueta_estado = tk.Label(
+            contenedor, text="¡Arrancamos!", font=("Arial", 12), pady=10, justify="left"
+        )
         etiqueta_estado.pack()
 
         elegir_color_gui = crear_elegir_color_gui(ventana)
 
-        def refrescar_vista(jugador_inicial, jugador_final):
+        def refrescar_vista(jugador_inicial, jugador_final, dado, eventos):
             dibujar_fichas(canvas, estado_app["jugadores"])
             casilla = TABLERO[jugador_final["posicion"]]
-            etiqueta_estado.config(
-                text=f"{jugador_final['nombre']} ({jugador_final['color']}): "
-                     f"casilla {jugador_inicial['posicion']} -> {jugador_final['posicion']} [{casilla['tipo']}]"
-            )
+            lineas = [
+                f"{jugador_final['nombre']} ({jugador_final['color']}) sacó {dado} en el dado: "
+                f"casilla {jugador_inicial['posicion']} -> {jugador_final['posicion']} [{casilla['tipo']}]"
+            ]
+            lineas.extend(eventos)
+            etiqueta_estado.config(text="\n".join(lineas))
 
         def terminar(ganador):
             estado_app["terminado"] = True
@@ -280,8 +284,10 @@ def iniciar_app() -> tk.Tk:
             def al_tirar_dado(event=None):
                 if estado_app["terminado"]:
                     return
-                jugador_inicial, jugador_final = ejecutar_un_turno(estado_app, elegir_color_gui, tirar_dado)
-                refrescar_vista(jugador_inicial, jugador_final)
+                jugador_inicial, jugador_final, dado, eventos = ejecutar_un_turno(
+                    estado_app, elegir_color_gui, tirar_dado
+                )
+                refrescar_vista(jugador_inicial, jugador_final, dado, eventos)
                 ganador = hay_ganador(estado_app["jugadores"])
                 if ganador:
                     terminar(ganador)
@@ -292,8 +298,10 @@ def iniciar_app() -> tk.Tk:
             def paso_automatico():
                 if estado_app["terminado"]:
                     return
-                jugador_inicial, jugador_final = ejecutar_un_turno(estado_app, elegir_color_al_azar, tirar_dado)
-                refrescar_vista(jugador_inicial, jugador_final)
+                jugador_inicial, jugador_final, dado, eventos = ejecutar_un_turno(
+                    estado_app, elegir_color_al_azar, tirar_dado
+                )
+                refrescar_vista(jugador_inicial, jugador_final, dado, eventos)
                 ganador = hay_ganador(estado_app["jugadores"])
                 if ganador:
                     terminar(ganador)

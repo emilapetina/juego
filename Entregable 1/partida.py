@@ -65,11 +65,13 @@ def pedir_color_castigado_interactivo(jugadores: Tuple[Dict, ...], color_propio:
 
 
 def tirar_dado_interactivo() -> int:
-    """Versión interactiva del dado: pide presionar una tecla antes de tirar."""
+    """
+    Versión interactiva del dado: pide presionar una tecla antes de
+    tirar. No imprime el resultado acá: lo anuncia `log_turno` (en
+    turno.py) junto con el resto de lo que pasó en el turno.
+    """
     input("Presioná ENTER para tirar el dado...")
-    valor = tirar_dado()
-    print(f"    Salió {valor}")
-    return valor
+    return tirar_dado()
 
 
 # ---------------------------------------------------------------------------
@@ -92,7 +94,7 @@ def jugar_partida(
     while hay_ganador(jugadores) is None:
         jugadores, indice_actual = siguiente_jugador(jugadores, indice_actual)
         jugador_actual = jugadores[indice_actual]
-        _, jugadores = jugar_turno(jugador_actual, jugadores, elegir_color_castigado, tirar_dado_fn)
+        _, jugadores, _, _ = jugar_turno(jugador_actual, jugadores, elegir_color_castigado, tirar_dado_fn)
         if pausa_segundos:
             time.sleep(pausa_segundos)
 

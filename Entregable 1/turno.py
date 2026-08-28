@@ -19,16 +19,20 @@ from competencia import resolver_llegada
 def log_turno(func):
     """
     Decorador que loguea cada turno jugado: quién jugó, en qué casilla
-    empezó y en cuál terminó. No modifica el comportamiento de la
+    empezó, qué salió en el dado, qué premios/castigos se activaron y
+    en qué casilla terminó. No modifica el comportamiento de la
     función que decora, solo agrega la traza.
     """
     @functools.wraps(func)
     def envoltorio(jugador, jugadores, *args, **kwargs):
         print(f"--- Turno de {jugador['nombre']} ({jugador['color']}), arranca en casilla {jugador['posicion']} ---")
-        jugador_final, jugadores_actualizados = func(jugador, jugadores, *args, **kwargs)
+        jugador_final, jugadores_actualizados, dado, eventos = func(jugador, jugadores, *args, **kwargs)
+        print(f"    Salió {dado} en el dado.")
+        for evento in eventos:
+            print(f"    {evento}")
         casilla_final = obtener_casilla(jugador_final["posicion"])
         print(f"    {jugador['nombre']} termina en casilla {jugador_final['posicion']} ({casilla_final['tipo']})")
-        return jugador_final, jugadores_actualizados
+        return jugador_final, jugadores_actualizados, dado, eventos
     return envoltorio
 
 
@@ -38,17 +42,22 @@ def jugar_turno(
     jugadores: Tuple[Dict, ...],
     elegir_color_castigado: ElegirColorCastigado,
     tirar_dado_fn: Callable[[], int] = tirar_dado,
-) -> Tuple[Dict, Tuple[Dict, ...]]:
+) -> Tuple[Dict, Tuple[Dict, ...], int, Tuple[str, ...]]:
     """
     Juega un turno completo para `jugador` (se asume que ya le toca a
     él y que no tiene pierde_turno activo): tira el dado, avanza, y
     resuelve todo lo que implica llegar a esa casilla (competencia +
-    premio/castigo, encadenado si corresponde).
+    premio/castigo, encadenado si corresponde). Devuelve
+    (jugador_final, jugadores_actualizados, dado, eventos), donde
+    `eventos` es una tupla de mensajes describiendo lo que pasó.
     """
     dado = tirar_dado_fn()
     jugador_movido = avanzar_jugador(jugador, dado)
     jugadores_actualizados = reemplazar_jugador(jugadores, jugador_movido)
-    return resolver_llegada(jugador_movido, jugadores_actualizados, elegir_color_castigado, tirar_dado_fn)
+    jugador_final, jugadores_finales, eventos = resolver_llegada(
+        jugador_movido, jugadores_actualizados, elegir_color_castigado, tirar_dado_fn
+    )
+    return jugador_final, jugadores_finales, dado, eventos
 
 
 def hay_ganador(jugadores: Tuple[Dict, ...]) -> Optional[Dict]:
@@ -88,7 +97,7 @@ if __name__ == "__main__":
     while hay_ganador(jugadores) is None:
         jugador_actual = jugadores[turno_de]
         dado_fn = (lambda: next(dados_fijos)) if jugador_actual["color"] == "rojo" else (lambda: next(dados_beto))
-        _, jugadores = jugar_turno(jugador_actual, jugadores, elegir_color_al_azar, dado_fn)
+        _, jugadores, _, _ = jugar_turno(jugador_actual, jugadores, elegir_color_al_azar, dado_fn)
         print(f"    Posiciones actuales: {posiciones_actuales(jugadores)}")
         turno_de = (turno_de + 1) % len(jugadores)
 
