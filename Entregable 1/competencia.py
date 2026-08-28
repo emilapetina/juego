@@ -82,11 +82,12 @@ def resolver_llegada(
     jugadores: Tuple[Dict, ...],
     elegir_color_castigado: ElegirColorCastigado,
     tirar_dado_fn: Callable[[], int] = tirar_dado,
-) -> Tuple[Dict, Tuple[Dict, ...]]:
+) -> Tuple[Dict, Tuple[Dict, ...], Tuple[str, ...]]:
     """
     Función de composición: junta la detección de competencia con la
     aplicación de premios/castigos. Se llama una sola vez después de
-    cada movimiento por dado:
+    cada movimiento por dado. Devuelve además una tupla de mensajes
+    (`eventos`) describiendo qué pasó, para mostrarle al usuario.
 
       1. Si la casilla de llegada está ocupada por otro jugador (y no
          es INICIO ni FIN), se resuelve la competencia.
@@ -103,15 +104,23 @@ def resolver_llegada(
     if defensor is None:
         return aplicar_efecto(jugador_recien_movido, jugadores, elegir_color_castigado)
 
-    ganador, _perdedor, jugadores_actualizados = resolver_competencia(
+    ganador, perdedor, jugadores_actualizados = resolver_competencia(
         jugador_recien_movido, defensor, jugadores, tirar_dado_fn
+    )
+    evento_competencia = (
+        f"Competencia: {jugador_recien_movido['nombre']} cayó en la casilla de "
+        f"{defensor['nombre']} ({defensor['color']}). Gana {ganador['nombre']}, "
+        f"{perdedor['nombre']} retrocede hasta la casilla {perdedor['posicion']}."
     )
 
     if ganador["color"] == jugador_recien_movido["color"]:
-        return aplicar_efecto(ganador, jugadores_actualizados, elegir_color_castigado)
+        jugador_final, jugadores_finales, eventos_efecto = aplicar_efecto(
+            ganador, jugadores_actualizados, elegir_color_castigado
+        )
+        return jugador_final, jugadores_finales, (evento_competencia,) + eventos_efecto
 
     jugador_final = next(j for j in jugadores_actualizados if j["color"] == jugador_recien_movido["color"])
-    return jugador_final, jugadores_actualizados
+    return jugador_final, jugadores_actualizados, (evento_competencia,)
 
 
 if __name__ == "__main__":
@@ -148,5 +157,6 @@ if __name__ == "__main__":
     print("\n--- resolver_llegada: sin colisión, cae en C1 ---")
     jugador = crear_jugador("Ana", "rojo", posicion=16)  # casilla C1
     otros = crear_jugador("Beto", "azul", posicion=0)
-    jugador_final, _ = resolver_llegada(jugador, (jugador, otros), elegir_color_al_azar)
+    jugador_final, _, eventos = resolver_llegada(jugador, (jugador, otros), elegir_color_al_azar)
     print(f"Ana pierde_turno = {jugador_final['pierde_turno']} (esperado True)")
+    print(f"Evento: {eventos}")
